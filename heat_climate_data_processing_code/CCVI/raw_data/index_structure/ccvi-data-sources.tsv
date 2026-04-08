@@ -1,0 +1,31 @@
+id	organisationId	organisation	shortLabel	label	url
+ECMWF_ERA5_LAND_MONTHLY_AGGR	c3s	Copernicus	ERA5 Land Monthly	ERA5-Land Monthly Aggregated - ECMWF Climate Reanalysis	https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_MONTHLY_AGGR
+ECMWF_ERA5_LAND_DAILY_RAW	c3s	Copernicus	ERA5 Land Daily	ERA5-Land Daily Aggregated - ECMWF Climate Reanalysis	https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_DAILY_AGGR#description
+ACLED	acled	Armed Conflict Location & Event Data Project (ACLED)	ACLED Conflict Data	Armed Conflict Location & Event Data Project (ACLED)	https://acleddata.com/
+MOD14A1_V061	nasa	National Aeronautics and Space Administration (NASA)	MODIS Daily Fires	MOD14A1-Daily Fires	https://doi.org/10.5067/MODIS/MOD14A1.061
+MCD14DL	nasa	National Aeronautics and Space Administration (NASA)	MODIS Active Fires	MCD14DL-Active Fires	https://www.earthdata.nasa.gov/learn/find-data/near-real-time/firms/mcd14dl
+IBTrACS_v4	noaa	National Atmospheric and Oceanic Administration (NOAA)	IBTrACS	IBTrACS_v4-Cyclones	https://www.ncei.noaa.gov/products/international-best-track-archive
+WorldPop	world-pop	WorldPop	Population Density (unconstrained, UN-adjusted)	WorldPop Population Density (unconstrained, UN-adjusted)	https://www.worldpop.org/
+V-Dem	v-dem	V-Dem Institute	Varieties of Democracy (V-Dem)	Varieties of Democracy (V-Dem)	https://v-dem.net/data/the-v-dem-dataset/
+EOG_NTL	eog	Earth Observation Group	Nightime Lights	Earth Observation Group VIIRS Nighttime Lights	https://eogdata.mines.edu/products/vnl/
+WB	world-bank	World Bank	World Development Indicators	The World Bank World Development Indicators	https://data.worldbank.org/
+ILO	ilo	International Labour Organisation (ILO)	ILO Labor Force Statistics	International Labor Organization (ILO) Labor Force Statistics	https://ilostat.ilo.org/
+IMF	imf	International Monetary Fund (IMF)	International Financial Statistics	International Monetary Fund (IMF) International Financial Statistics	https://data.imf.org/
+GDL	global-data-lab	Global Data Lab	Subnational Human/Gender Development Index	Global Data Lab - Subnational Human/Gender Development	https://globaldatalab.org/shdi/
+CPI	transparency-international	Transparency International	Corruption Perceptions Index (CPI)	Transparency International - Corruption Perceptions Index (CPI)	https://www.transparency.org/en/cpi/2022
+UNWPP	un	United Nations (UN)	World Population Prospects (WPP)	United Nations World Population Prospects (WPP)	https://population.un.org/wpp/
+WGI	world-bank	World Bank	Worldwide Governance Indicators (WGI)	Worldwide Governance Indicators (WGI)	https://www.govindicators.org/
+FH	freedom-house	Freedom House (FH)	Freedom in the World	Freedom House (FH) - Freedom in the World	https://freedomhouse.org/report/freedom-world
+EPR	eth	ETH Zürich	Ethnic Power Relations	Ethnic Power Relations (EPR)	https://icr.ethz.ch/data/epr/
+GII	un	United Nations (UN)	Gender Inequality Index	UNDP Gender Inequality Index	https://hdr.undp.org/data-center/thematic-composite-indices/gender-inequality-index#/indicies/GII
+GLOFAS	c3s	Copernicus	Historical Streamflow Data	GloFAS Historical Streamflow Data	https://ewds.climate.copernicus.eu/datasets/cems-glofas-historical?tab=overview
+HDI	un	United Nations (UN)	Human Development Index	UNDP Human Development Index	https://hdr.undp.org/data-center/human-development-index#/indicies/HDI
+BERKLEY	berkeley-earth	Berkeley Earth	Global Monthly Land + Ocean Temperature Data	Berkeley Earth Global Monthly Land + Ocean Temperature Data	https://berkeleyearth.org/data/
+MCD12C1v061	nasa	National Aeronautics and Space Administration (NASA)	MODIS Land Cover	MODIS/Terra+Aqua Land Cover Type Yearly L3 Global 0.05 Deg CMG	https://doi.org/10.5067/MODIS/MCD12C1.061
+C3S_LandCover	c3s	Copernicus	C3S LandCover	Land Cover Classification C3S	https://doi.org/10.24381/cds.006f2c9a
+UNHCR	un	United Nations (UN)	Refugee Population Statistics Database	UNHCR Refugee Population Statistics Database	https://www.unhcr.org/refugee-statistics
+SWIID	universityofiowa	University of Iowa	Standardized World Income Inequality Database	Standardized World Income Inequality Database	https://fsolt.org/swiid/
+geoBound	geo-boundaries	geoBoundaries	geoBoundaries	geoBoundaries database of political administrative boundaries	https://www.geoboundaries.org/index.html
+FEWS	fews	FEWS	Acute Food Insecurity Classification	FEWS Acute Food Insecurity Classification	https://fews.net/data/acute-food-insecurity
+UN_SDG	un	United Nations (UN)	SDG Indicators	United Nations SDG Indicators Database	https://unstats.un.org/sdgs/dataportal/database
+Nicholls-et-al	nicholls	Various	Nicholls et al. 2021	Nicholls et al. 2021	https://doi.org/10.1038/s41558-021-00993-z

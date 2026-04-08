@@ -1,6 +1,0 @@
-feapder
-requests
-lxml
-beautifulsoup4
-pymysql
-redis

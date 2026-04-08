@@ -1,0 +1,10 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+final_output/
+output_line_graph/
+output_refined_maps/
+output_un_heat_events_map/
+temperature_025degree_2015_2024_mhw_daily.nc
+raw_news_events.csv

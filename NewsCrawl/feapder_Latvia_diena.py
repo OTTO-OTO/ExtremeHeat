@@ -1,0 +1,118 @@
+import feapder
+from feapder import Item
+from lxml import etree
+import re
+
+
+class AirSpiderDemo(feapder.AirSpider):
+    __custom_setting__ = dict(
+
+        SPIDER_THREAD_COUNT=5,  # 爬虫并发数，追求速度推荐32
+        # # 下载时间间隔 单位秒。 支持随机 如 SPIDER_SLEEP_TIME = [2, 5] 则间隔为 2~5秒之间的随机数，包含2和5
+        SPIDER_SLEEP_TIME=[6, 10],
+        SPIDER_MAX_RETRY_TIMES=1,  # 每个请求最大重试次数
+        MYSQL_IP="192.168.101.200",
+        MYSQL_PORT=3307,
+        MYSQL_DB="other_country_site1",
+        MYSQL_USER_NAME="czm",
+        MYSQL_USER_PASS="root",
+        ITEM_FILTER_ENABLE=True,  # item 去重
+        ITEM_FILTER_SETTING=dict(
+            filter_type=4  # 永久去重（BloomFilter） = 1 、内存去重（MemoryFilter） = 2、 临时去重（ExpireFilter）= 3、轻量去重（LiteFilter）= 4
+        )
+    )
+    country = 'Latvia'
+    table = 'Latvia_diena'
+    keywords = [
+        'Ekstrēms', 'Saulēks', 'Augsta temperatūra', 'Spēcīgs liels', 'Sasākums',
+        'Saulēšanas dēļ izslēgts elektrības apritējs', 'Ugunsgrēks', 'Gaisa saksenāšana', 'Klimata izmaiņas',
+        'Lauksaimniecības iznākumu samazināšanās', 'Oksīdija trūkums', 'Augsta temperatūra ietekmē satiksmi',
+        'Ekoloģiskais katastrofa', 'Klimata izmaiņas ietekmē ekonomiku', 'Jūras sārtēks',
+        'Augsta temperatūras saksenāšana', 'Korāli'
+    ]
+
+    def start_requests(self):
+        for keyword in self.keywords:
+            page = 0
+            url = "https://www.diena.lv/search/"
+            params = {
+                "cat": "0",
+                "from": "",
+                "keyword": f"{keyword}",
+                "sort": "published",
+                "to": "",
+                "page": "0"
+            }
+            yield feapder.Request(url, params=params, callback=self.parse_url, page=page, keyword=keyword)
+
+    def download_midware(self, request):
+        request.headers = {
+            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+            "priority": "u=0, i",
+            "sec-ch-ua": "\"Microsoft Edge\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "document",
+            "sec-fetch-mode": "navigate",
+            "sec-fetch-site": "none",
+            "sec-fetch-user": "?1",
+            "upgrade-insecure-requests": "1",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0"
+        }
+        request.cookies = {
+            "ca": "hb76nbcuedoc0qc45rqdp2m6hp",
+            "splash_seen": "1",
+            "_ga": "GA1.1.2063368035.1735972970",
+            "_pctx": "%7Bu%7DN4IgrgzgpgThIC4B2YA2qA05owMoBcBDfSREQpAeyRCwgEt8oBJAEzIEYOBmANm4AMATgDsADgAsvMQCYRAViGChIAL5A",
+            "_pcid": "%7B%22browserId%22%3A%22m5hthgc6ie0utfr5%22%7D",
+            "cX_P": "m5hthgc6ie0utfr5",
+            "__gfp_64b": "pLzWxXcuVgWToAObV_ySV2XLiaibCW7oojocn6w2cX7.87|1735972961|2|||8:1:80",
+            "cX_G": "cx%3A3ne4t51g3oa6m1nvacdg5rtk0%3A1wz6ovj0fhvl1",
+            "_ga_BEVRE4RKFV": "GS1.1.1735972969.1.1.1735973058.0.0.0"
+        }
+        return request
+
+    def parse_url(self, request, response):
+        # print(response.text)
+        current_keyword = request.keyword
+        print(f"当前关键词{current_keyword}的页数为:{request.page}")
+        links = response.xpath("//h4/a/@href").extract()
+        if not links:
+            print(f"关键词 {current_keyword} 的第 {request.page} 页没有数据，退出当前关键字的循环")
+            return None  # 如果没有数据，返回 None 表示结束当前关键词的处理
+        for item in links:
+            print(item)
+            items = Item()
+            items.article_url = item
+            # items.title = item.get("title")
+            items.country = self.country
+            items.keyword = request.keyword  # 确保 items.keyword 被正确赋值
+            yield feapder.Request(url=items.article_url, callback=self.parse_detail, items=items)
+
+        current_page = request.page + 1
+        url = "https://www.diena.lv/search/"
+        params = {
+            "cat": "0",
+            "from": "",
+            "keyword": f"{current_keyword}",
+            "sort": "published",
+            "to": "",
+            "page": f"{current_page}"
+        }
+        yield feapder.Request(url, params=params, callback=self.parse_url, page=current_page, keyword=current_keyword)
+
+    def parse_detail(self, request, response):
+        items = request.items
+        items.table_name = self.table
+        items.title = response.xpath("//h1/text()").extract_first()
+        items.content = "".join(response.xpath("//div[@class='cont']//p/text() | //section[@class='block article__body ']//p/text()").extract())
+        items.author = ''
+        items.pubtime = response.xpath("//time/text()").extract_first()
+        print(items)
+        if items.content:
+            yield items
+
+
+if __name__ == "__main__":
+    AirSpiderDemo().start()

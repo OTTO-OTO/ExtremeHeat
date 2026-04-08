@@ -1,0 +1,9 @@
+pandas
+numpy
+xarray
+scipy
+tqdm
+matplotlib
+seaborn
+cartopy
+shapely
