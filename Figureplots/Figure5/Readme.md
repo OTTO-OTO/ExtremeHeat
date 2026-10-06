@@ -1,134 +1,95 @@
-# Analysis Code for Nature Submissions
+---
+title: "README: Analysis Code for Figure 5"
+output: html_document
+---
 
-This repository contains the complete R analysis code for the manuscript submitted to a Nature Portfolio journal. The code covers five main analytical modules: machine learning with XGBoost and SHAP, group comparisons (ICT and CCPI), boxplot visualizations, and linear regression analyses of language proximity in Africa.
+# README: Analysis Code for Figure 5
+
+This repository contains the R code used to produce Figure 5 and the associated statistical analyses in the manuscript. The code covers the XGBoost + SHAP analysis, group comparisons for ICT and CCPI, and the fractional logit regressions of language proximity in Africa.
 
 ## 1. Project Overview
 
-- **Objective**: To investigate the relationship between a reporting ratio (`Ratio`) and multiple predictors including ICT usage, climate change performance (CCPI), and language proximity, using both traditional statistics and machine learning.
+- **Objective**: To examine the structural correlates of the extreme-heat reporting ratio (`Ratio`) using machine learning and regression analyses.
 - **Methods**:
   - XGBoost regression with SHAP (SHapley Additive exPlanations) for feature importance.
-  - Independent t‑tests or Mann‑Whitney U tests (chosen based on normality) for group comparisons.
-  - Boxplots and scatter plots with regression lines.
-- **Target Journal**: Nature Communications / Scientific Reports (or any Nature Portfolio journal requiring reproducible code).
+  - Group comparisons (ICT and CCPI) using t‑tests or Mann–Whitney U tests depending on normality.
+  - Fractional logit regressions for the Common Language Proximity Index (LPN2CommonLanguage) in Africa.
+- **Target**: The code is intended to be fully reproducible and accompanies the manuscript submitted to *Nature Climate Change*.
 
 ## 2. File Structure & Environment
 
-### Required Files
-- `MLdata_selected.xlsx` – used in Modules 1 and 2 (contains features and target variable).
-- `RMdata_selected.xlsx` – used in Modules 3, 4, and 5 (contains Ratio, continent, ICT_NETUSER_2023, CCPI_Score, LPN2CommonLanguage_2024, country1, etc.).
-
-> **Note**: The code currently uses hard‑coded Windows paths (e.g., `C:\Users\HP\Desktop\...`). You **must** change these paths to match your local file locations.
+### Required Data
+- `Figure5_RawData.xlsx` – the single input file for all analyses.
+  - The file has already had Antarctica removed.
+  - Column 1: `Ratio` (reporting ratio).
+  - Columns 6–13: eight predictors used in the machine-learning model.
+  - Column 14: `CCPI` – used for the group comparison.
+  - Other columns: `country1`, `country2`, `Alpha_3_Co`, `continent`, `income_grp`, `lon`, `lat`.
 
 ### R Environment
-- R version ≥ 4.0.0
+- R version ≥ 4.0.0.
 - Required packages (install all before running):
 
-```r
+```{r, eval=FALSE}
 install.packages(c(
-  "tidyverse", "shapr", "caret", "rpart", "ggplot2", "vip", "pdp",
-  "kernelshap", "SHAPforxgboost", "xgboost", "data.table", "readxl",
-  "writexl", "shapviz", "car", "rstatix", "coin"
+  "readxl", "dplyr", "tidyr", "ggplot2", "caret", "xgboost",
+  "SHAPforxgboost", "car", "rstatix", "boot", "purrr"
 ))
-```r
+```
+
+> **Note**: The script uses a hard‑coded Windows path (`C:/Users/HP/Desktop/Figure5_RawData.xlsx`). Change this path to match your local environment before running.
 
 ## 3. Data Preparation
-All modules read Excel files directly. Key variables:
 
-## Variable	Description	Used in modules
-Ratio	Target variable (reporting ratio)	1,2,3,4,5
-ICT_NETUSER_2023	Internet users rate	3,4
-CCPI_Score	Climate Change Performance Index score	3,4
-LPN2CommonLanguage_2024	Language proximity index	5
-continent	Continent name	3,4,5
-country1	Country name (for language grouping in Africa)	5
-Missing data handling:
+All analyses read `Figure5_RawData.xlsx` directly.
 
-Module 2: na.omit(data) before model training.
-
-Module 3: filter(!is.na(...)) for each analysis variable.
-
-Module 4: same as Module 3.
-
-Module 5: no explicit na.omit, but lm() and geom_smooth() handle NAs by default.
-
-Categorical variable encoding (Modules 1 & 2):
-Factors and characters are converted to numeric using as.numeric(factor(x)) - 1. This is necessary for XGBoost.
+- **Global imputation** (`imputed_data`): For the eight predictors in columns 6–13, missing values are imputed using the median within each World Bank income group. This imputed dataset is used for the group comparison and the language‑proximity regressions.
+- **Within‑fold imputation** (`impute_fold`): For the XGBoost model, imputation is performed separately inside the training fold and then applied to the test fold, to avoid information leakage.
+- **Missing outcome**: Rows with missing `Ratio` are removed before model training.
 
 ## 4. Modules & Execution Order
-Run the code from top to bottom exactly as written. Each module is separated by # =========...= comments.
 
-Module	Description	Output
-1	XGBoost regression + SHAP bar plot	Console: RMSE, MAE, R². Graphics: actual vs predicted plot, SHAP importance bar plot.
-2	XGBoost + SHAP scatter plot (with na.omit)	Graphics: SHAP summary scatter plot (feature value vs SHAP value).
-3	Group comparisons (ICT & CCPI)	Console: summary tables with sample sizes, means, medians, normality test results, test method, p‑value, effect size (Cohen's d or r), significance stars.
-4	Boxplots for ICT and CCPI groups	Graphics: two boxplots (one for CCPI, one for ICT) with dashed vertical lines separating continents.
-5	Linear regression of Ratio on language proximity (Africa only)	Graphics: scatter plots with regression lines (overall Africa, and Arabic subgroup).
-Important notes about Module 3 (statistical tests)
-A strict rule is applied to choose between t‑test and Mann‑Whitney U test:
+Run the code from top to bottom. The script is organised into the following sections.
 
-If both groups are normally distributed (Kolmogorov‑Smirnov test on scaled data, p > 0.05) → t‑test (Welch’s if variances unequal, otherwise pooled).
+| Module | Description | Output |
+|--------|-------------|--------|
+| 1. XGBoost + SHAP bar plot | Trains an XGBoost model with 5‑fold cross‑validated hyperparameter tuning, evaluates on a held‑out test set, and produces a SHAP importance bar plot with error bars. | Console: RMSE, MAE, R². Graphics: SHAP bar plot (positive/negative effects). |
+| 2. Group‑level SHAP importance | Aggregates the SHAP values into three conceptual domains (Socioeconomic Status, Climate Vulnerability, Monitoring Ability) and produces a horizontal bar chart and a Nightingale rose plot. | Graphics: bar chart and rose plot. |
+| 3. Module 2 (REMOVABLE) | A second XGBoost model using complete cases only, with a SHAP summary scatter plot. This section is optional and can be removed without affecting the main results. | Graphics: SHAP summary scatter plot. |
+| 4. Group comparison (ICT & CCPI) | Divides countries within Africa, Asia, and Europe into High/Low groups using the 1/3 quantile rule. Performs Shapiro–Wilk normality tests, Levene tests, and either t‑tests or Mann–Whitney U tests. Reports sample sizes, effect sizes, bootstrap 95% CIs, and FDR‑adjusted p‑values. | Console: summary tables. Graphics: boxplots for ICT and CCPI. |
+| 5. Language proximity regression | Fits fractional logit models of `Ratio` on `LPN2CommonLanguage` for Africa overall and the Arabic subgroup. Reports coefficients, standard errors, p‑values, 95% CIs, and average marginal effects per 1‑SD. | Console: model statistics. Graphics: scatter plots with fitted curves. |
 
-If at least one group is non‑normal → Mann‑Whitney U test.
+## 5. Important Notes
 
-Effect sizes:
+- **Random seed**: `SEED_MAIN <- 42` is used for all random operations (train/test split, cross‑validation, bootstrap).
+- **Hyperparameter tuning**: The grid search covers `eta`, `max_depth`, `subsample`, `colsample_bytree`, `reg_lambda`, and `min_child_weight`. The best combination is selected by minimum mean cross‑validated RMSE.
+- **Group definitions**:
+  - Within each continent, the 1/3 and 2/3 quantiles of the variable define the Low and High groups. Countries between the two thresholds are excluded.
+  - Ties at the thresholds are assigned to the lower group.
+- **Missing data**:
+  - For the XGBoost model, imputation is fitted on the training fold only.
+  - For the group comparison and language regressions, the globally imputed dataset (`imputed_data`) is used.
 
-Cohen’s d for t‑tests.
+## 6. Input/Output Details
 
-r (from wilcox_effsize) for Mann‑Whitney U tests.
+### Input
+- `Figure5_RawData.xlsx` – must be placed in the working directory or the path must be updated.
 
-The analysis is performed per continent and also for all continents combined.
+### Output
+- **Console**: All model metrics, statistical test results, and regression summaries are printed.
+- **Graphics**: Displayed in the active graphics device. No automatic saving is implemented; users can add `ggsave()` if they wish to save the figures.
 
-## 5. Input/Output Details
-Input file paths (must be edited by user)
-MLdata_selected.xlsx → used in Modules 1 & 2 (sheet = 1, guess_max = 10000)
+## 7. Reproduction Steps
 
-RMdata_selected.xlsx → used in Modules 3, 4, 5 (sheet = 2 in Modules 4 & 5, no sheet specified in Module 3 – default sheet 1)
-
-Recommended change: Replace absolute paths with relative paths, e.g.,
-read_excel("./data/MLdata_selected.xlsx")
-
-Output
-Console: All numerical results (model metrics, test summaries) are printed.
-
-Graphics: Displayed in the active graphics device. No automatic saving is implemented; users can manually add ggsave() if needed.
-
-## 6. Important Notes for Reproduction
-Random seed: set.seed(1314) is used in Modules 1 and 2 for reproducible train/test split (90% training).
-
-Group definitions:
-
-ICT high/low: within each continent, countries with ICT_NETUSER_2023 above the 1/3 quantile are “High ICT”, others “Low ICT”.
-
-CCPI high/low: within each continent, countries with CCPI_Score above the median (probs = 1/2) in Module 3, but 1/3 quantile in Module 4 (boxplots). This inconsistency should be noted; the boxplot definition (probs = 1/3) is used for visualisation only.
-
-Language groups in Africa: Based on a manually defined list of English, French, Arabic, and Portuguese‑speaking countries (see vectors ENG, FRA, ARB, POR). Country names must exactly match the country1 column in the Excel file.
-
-Excluded continents:
-
-ICT analysis: “North America”, “Seven seas (open ocean)”
-
-CCPI analysis: “North America”, “South America”, “Oceania”, “NA”
-
-Boxplots: further exclude some continents depending on the plot.
-
-## 7. Reproduction Steps (Minimal Example)
-Install R (≥4.0) and RStudio (recommended).
-
-Install required packages (see Section 2).
-
-Place the two Excel files in a known folder, e.g., C:/MyProject/data/.
-
-Open the R script (copy the code into a new .R file).
-
-Modify file paths in all read_excel() calls to point to your data files.
-
-Run the entire script line by line or source it.
-
-Check console output for model metrics and statistical test results.
-
-View generated plots in the R graphics window.
+1. Install R (≥ 4.0) and RStudio (recommended).
+2. Install the required packages (see Section 2).
+3. Place `Figure5_RawData.xlsx` in a known folder.
+4. Open the R script and update the `IN_PATH` variable to point to your data file.
+5. Run the entire script line by line or source it.
+6. Check the console for model metrics and statistical results.
+7. View the generated plots in the R graphics window.
 
 ## 8. Citation & License
-License: MIT – you are free to use, modify, and distribute this code with proper attribution.
 
-Citation: If you use this code in a publication, please cite the original manuscript (DOI to be added upon publication) and this repository.
+- **License**: MIT – you are free to use, modify, and distribute this code with proper attribution.
+- **Citation**: If you use this code in a publication, please cite the original manuscript (DOI to be added upon publication) and this repository.
