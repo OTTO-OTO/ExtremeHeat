@@ -834,3 +834,127 @@ print_language_stats(fit_arabic, "Arabic subgroup")
 
 
 
+
+
+
+# ============================================================================
+# Supplementary: Geographic cross-validation (k-means on grid centroids, 5 folds)
+#   Baselines: global mean, regional mean, geographic OLS, socioeconomic OLS.
+# ============================================================================
+ncc_raw <- read_excel(IN_PATH, guess_max = 10000)
+df_cv <- ncc_raw %>%
+  select(Ratio = all_of(outcome_col),
+         continent, income_grp,
+         all_of(feature_cols),
+         lon, lat) %>%
+  filter(!is.na(Ratio), !is.na(lon), !is.na(lat))
+
+set.seed(SEED_MAIN)
+df_cv$fold <- kmeans(scale(df_cv[, c("lon", "lat")]),
+                     centers = 5, nstart = 25, iter.max = 100)$cluster
+
+socio_vars <- feature_cols[
+  grepl("gdp_percapita",         feature_cols, ignore.case = TRUE) |
+    grepl("pop_density",           feature_cols, ignore.case = TRUE) |
+    grepl("NDGAIN_VulSensitivity", feature_cols, ignore.case = TRUE) |
+    grepl("NDGAIN_VulCapacity",    feature_cols, ignore.case = TRUE)
+]
+
+oof <- list(xgb       = rep(NA_real_, nrow(df_cv)),
+            global    = rep(NA_real_, nrow(df_cv)),
+            regional  = rep(NA_real_, nrow(df_cv)),
+            geo_ols   = rep(NA_real_, nrow(df_cv)),
+            socio_ols = rep(NA_real_, nrow(df_cv)))
+
+fold_metrics <- data.frame(fold = integer(),
+                           N_train = integer(),
+                           N_test  = integer(),
+                           xgb_R2 = numeric(),
+                           xgb_RMSE = numeric(),
+                           xgb_MAE = numeric())
+for (f in 1:5) {
+  tr_idx <- which(df_cv$fold != f)
+  te_idx <- which(df_cv$fold == f)
+  
+  imp <- impute_fold(df_cv[tr_idx, ], df_cv[te_idx, ], cols_to_impute)
+  tr  <- imp$train
+  te  <- imp$test
+  
+  X_tr_full <- as.data.frame(tr[, feature_cols, drop = FALSE])
+  y_tr_full <- tr$Ratio
+  X_te      <- as.data.frame(te[, feature_cols, drop = FALSE])
+  y_te      <- te$Ratio
+  
+  set.seed(SEED_MAIN)
+  val_idx <- sample(1:nrow(X_tr_full), floor(0.1 * nrow(X_tr_full)))
+  dtrain  <- xgb.DMatrix(as.matrix(X_tr_full[-val_idx, ]), label = y_tr_full[-val_idx])
+  dval    <- xgb.DMatrix(as.matrix(X_tr_full[val_idx, ]),  label = y_tr_full[val_idx])
+  dtest   <- xgb.DMatrix(as.matrix(X_te), label = y_te)
+  
+  set.seed(SEED_MAIN)
+  model_f <- xgb.train(params = best_params_m1, data = dtrain,
+                       nrounds = 1000, early_stopping_rounds = 50,
+                       watchlist = list(train = dtrain, val = dval),
+                       verbose = 0)
+  
+  preds_f <- predict(model_f, dtest,
+                     iteration_range = c(0, model_f$best_iteration + 1))
+  oof$xgb[te_idx] <- preds_f
+  
+  m <- eval_metrics(y_te, preds_f)
+  fold_metrics <- rbind(fold_metrics,
+                        data.frame(fold = f,
+                                   N_train = nrow(tr),
+                                   N_test  = nrow(te),
+                                   xgb_R2   = m$R2,
+                                   xgb_RMSE = m$RMSE,
+                                   xgb_MAE  = m$MAE))
+  
+  global_mean <- mean(tr$Ratio, na.rm = TRUE)
+  oof$global[te_idx] <- global_mean
+  
+  cont_means <- tr %>% group_by(continent) %>%
+    summarise(cont_mean = mean(Ratio, na.rm = TRUE), .groups = "drop")
+  oof$regional[te_idx] <- te %>%
+    left_join(cont_means, by = "continent") %>%
+    mutate(p = ifelse(is.na(cont_mean), global_mean, cont_mean)) %>%
+    pull(p)
+  
+  oof$geo_ols[te_idx] <- predict(lm(Ratio ~ lon + lat, data = tr), newdata = te)
+  
+  if (length(socio_vars) >= 1) {
+    socio_vars_quoted <- paste0("`", socio_vars, "`", collapse = " + ")
+    fml <- as.formula(paste("Ratio ~", socio_vars_quoted))
+    oof$socio_ols[te_idx] <- predict(lm(fml, data = tr), newdata = te)
+  }
+}
+
+overall <- data.frame(
+  Model = c("XGBoost (geographic CV)", "Global mean", "Regional mean",
+            "Geographic OLS", "Socioeconomic OLS"),
+  R2 = NA_real_, RMSE = NA_real_, MAE = NA_real_
+)
+
+for (i in seq_len(nrow(overall))) {
+  preds <- oof[[c("xgb", "global", "regional", "geo_ols", "socio_ols")[i]]]
+  ok    <- !is.na(preds) & !is.na(df_cv$Ratio)
+  if (sum(ok) > 0) {
+    m <- eval_metrics(df_cv$Ratio[ok], preds[ok])
+    overall[i, c("R2", "RMSE", "MAE")] <- round(c(m$R2, m$RMSE, m$MAE), 4)
+  }
+}
+
+cat("\n============================================================\n")
+cat("OOF model comparison (geographic CV)\n")
+cat("============================================================\n")
+print(overall)
+
+cat("\nXGBoost fold-to-fold variability:\n")
+cat("R2   mean:", round(mean(fold_metrics$xgb_R2),   4),
+    "| SD:", round(sd(fold_metrics$xgb_R2),   4), "\n")
+cat("RMSE mean:", round(mean(fold_metrics$xgb_RMSE), 4),
+    "| SD:", round(sd(fold_metrics$xgb_RMSE), 4), "\n")
+cat("MAE  mean:", round(mean(fold_metrics$xgb_MAE),  4),
+    "| SD:", round(sd(fold_metrics$xgb_MAE),  4), "\n")
+
+

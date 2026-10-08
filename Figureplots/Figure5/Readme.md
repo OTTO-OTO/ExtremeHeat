@@ -59,6 +59,15 @@ Run the code from top to bottom. The script is organised into the following sect
 | 4. Group comparison (ICT & CCPI) | Divides countries within Africa, Asia, and Europe into High/Low groups using the 1/3 quantile rule. Performs Shapiro–Wilk normality tests, Levene tests, and either t‑tests or Mann–Whitney U tests. Reports sample sizes, effect sizes, bootstrap 95% CIs, and FDR‑adjusted p‑values. | Console: summary tables. Graphics: boxplots for ICT and CCPI. |
 | 5. Language proximity regression | Fits fractional logit models of `Ratio` on `LPN2CommonLanguage` for Africa overall and the Arabic subgroup. Reports coefficients, standard errors, p‑values, 95% CIs, and average marginal effects per 1‑SD. | Console: model statistics. Graphics: scatter plots with fitted curves. |
 
+### 4.1 Geographic cross-validation (Supplementary Section S9)
+
+The 5-fold geographic cross-validation reported in Supplementary Section S9 is integrated into the 
+Figure 5 workflow in the same R script. It uses k-means clustering on grid-centroid coordinates to 
+construct five spatially separated folds, applies imputation and model training only within each 
+training fold, and reports out-of-fold \(R^2\), RMSE, MAE, and comparisons against four baseline 
+models (global mean, regional mean, geographic OLS, and socioeconomic OLS). No separate script is 
+required.
+
 ## 5. Important Notes
 
 - **Random seed**: `SEED_MAIN <- 42` is used for all random operations (train/test split, cross‑validation, bootstrap).
